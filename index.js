@@ -8,6 +8,7 @@ const GLOB_STATE = {
 
 function indexing() {
   return loadStickersCsv()
+    .then(clearIndex)
     .then(bucketingTags)
     .then(populateAllTags)
     .catch(handleError);
@@ -18,6 +19,12 @@ function loadStickersCsv() {
     .get('/stickers.csv', {responseType: 'text'})
     .then((res) => parseStickersCsv(res.data))
     .catch(handleError);
+}
+
+function clearIndex(csv) {
+  GLOB_STATE.allTags = [];
+  GLOB_STATE.tagBuckets = {};
+  return csv;
 }
 
 function parseStickersCsv(csv) {
@@ -112,7 +119,9 @@ function loadRecentlyUsed() {
 
 function saveRecentlyUsed([tag, file]) {
   const size = 12;
-  const recentlyUsed = [[tag, file]].concat(loadRecentlyUsed()).slice(0, size);
+  const recentlyUsed = [[tag, file]]
+    .concat(loadRecentlyUsed().filter(([_, f]) => f !== file))
+    .slice(0, size);
   localStorage.setItem('recentlyUsed', JSON.stringify(recentlyUsed));
 }
 
@@ -133,11 +142,12 @@ function writeStickerToClipboard(file) {
 
 // DOM Manipulation
 function renderStickers(tagFilePairs) {
-  $('#stickers').empty();
+  const mountPointSelector = '#stickers';
+  $(mountPointSelector).empty();
   for (const [tag, file] of tagFilePairs) {
     const $stickerItem = $(
       [
-        `<div title="Click để sao chép" class="me-3 mb-3 p-2 bg-light position-relative d-flex align-items-center justify-content-center sticker">`,
+        `<div title="Click để sao chép" class="me-2 mb-2 p-2 bg-light position-relative sticker">`,
         `<img alt="${tag}" src="${file}"></img>`,
         `<span class="badge text-bg-light position-absolute top-0 start-0">${tag}</span>`,
         `</div>`,
@@ -149,7 +159,7 @@ function renderStickers(tagFilePairs) {
         .then(showCopiedSuccessfulNoti)
         .catch(handleError);
     });
-    $('#stickers').append($stickerItem);
+    $(mountPointSelector).append($stickerItem);
   }
 }
 
