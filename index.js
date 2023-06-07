@@ -185,8 +185,7 @@ function writeStickerToClipboard(file) {
 
 // DOM Manipulation
 function renderStickers(tagFilePairs) {
-  const mountPointSelector = '#stickers';
-  $(mountPointSelector).empty();
+  $('#stickers').empty();
   for (const [tag, file] of tagFilePairs) {
     const $stickerItem = $(
       [
@@ -202,7 +201,7 @@ function renderStickers(tagFilePairs) {
         .then(showCopiedSuccessfulNoti)
         .catch(handleError);
     });
-    $(mountPointSelector).append($stickerItem);
+    $('#stickers').append($stickerItem);
   }
 }
 
@@ -213,7 +212,9 @@ function renderAllTags(allTags) {
       [`<span class="me-2 mb-2 badge text-bg-light tag">${tag}</span>`].join('')
     );
     $tagItem.on('click', function () {
+      $(window).scrollTop(0);
       $('#searchinput').val(tag);
+      $('#searchinput').trigger('focus');
       $('#searchinput').trigger('keyup');
     });
     $('#alltags').append($tagItem);
@@ -230,8 +231,8 @@ function bindSearchInputEvent() {
 function doSearching() {
   const keyword = $('#searchinput').val();
   if (keyword) {
-    const results = searchSticker(keyword);
-    renderStickers(results);
+    const stickers = searchSticker(keyword);
+    renderStickers(stickers);
   } else {
     renderStickers(defaultStickers());
   }
