@@ -1,6 +1,8 @@
 const MAX_SUPPORTED_TAG_LENGTH = 8;
+const RECENTLY_USED_HISTORY_SIZE = 16;
 const GLOB_STATE = {
   allTags: [],
+  allFiles: [],
   tagBuckets: {},
   searchTimeout: null,
   notiTimeout: null,
@@ -9,6 +11,7 @@ const GLOB_STATE = {
 function indexing() {
   return loadStickersCsv()
     .then(clearIndex)
+    .then(populateAllFiles)
     .then(bucketingTags)
     .then(populateAllTags)
     .catch(handleError);
@@ -23,6 +26,7 @@ function loadStickersCsv() {
 
 function clearIndex(csv) {
   GLOB_STATE.allTags = [];
+  GLOB_STATE.allFiles = [];
   GLOB_STATE.tagBuckets = {};
   return csv;
 }
@@ -39,14 +43,19 @@ function parseStickersCsv(csv) {
         .replace(/\"/g, '')
         .replace(/\s*,\s*/g, ',')
         .split(',');
-      parsingResult.push({file, tags});
+      parsingResult.push([file, tags]);
     }
   }
   return parsingResult;
 }
 
+function populateAllFiles(parsedCsv) {
+  GLOB_STATE.allFiles = [...parsedCsv];
+  return parsedCsv;
+}
+
 function bucketingTags(parsedCsv) {
-  for (const {file, tags} of parsedCsv) {
+  for (const [file, tags] of parsedCsv) {
     for (const tag of tags) {
       const c = (tag[0] || '').toLowerCase();
       GLOB_STATE.tagBuckets[c] = GLOB_STATE.tagBuckets[c] || [];
@@ -118,7 +127,7 @@ function loadRecentlyUsed() {
 }
 
 function saveRecentlyUsed([tag, file]) {
-  const size = 12;
+  const size = RECENTLY_USED_HISTORY_SIZE;
   const recentlyUsed = [[tag, file]]
     .concat(loadRecentlyUsed().filter(([_, f]) => f !== file))
     .slice(0, size);
@@ -127,7 +136,41 @@ function saveRecentlyUsed([tag, file]) {
 
 function defaultStickers() {
   const recentlyUsed = loadRecentlyUsed();
-  return recentlyUsed.length > 0 ? recentlyUsed : GLOB_STATE.tagBuckets['a'];
+  const randStickers = randomStickers(32);
+  const result = [];
+  const seen = {};
+  for (const [tag, file] of recentlyUsed.concat(randStickers)) {
+    if (!seen[file]) {
+      result.push([tag, file]);
+      seen[file] = true;
+    }
+  }
+  return result;
+}
+
+function randomStickers(quantity) {
+  const l = GLOB_STATE.allFiles.length;
+  if (quantity < l) {
+    let s = 0;
+    const seen = {};
+    const result = [];
+    while (s < quantity) {
+      const i = randomInt(l);
+      if (!seen[i]) {
+        const [f, [t]] = GLOB_STATE.allFiles[i];
+        result.push([t, f]);
+        seen[i] = true;
+        s += 1;
+      }
+    }
+    return result;
+  } else {
+    return GLOB_STATE.allFiles.map(([f, [t]]) => [t, f]);
+  }
+}
+
+function randomInt(exclusiveMax) {
+  return Math.floor(Math.random() * exclusiveMax);
 }
 
 function writeStickerToClipboard(file) {
