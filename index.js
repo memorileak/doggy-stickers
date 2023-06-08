@@ -146,9 +146,9 @@ function loadRecentlyUsed() {
   const raw = localStorage.getItem('recentlyUsed');
   return raw
     ? JSON.parse(raw).map(([tag, file]) => [
-        tag,
-        file.replace(/^\/stickers/, ''),
-      ])
+      tag,
+      file.replace(/^\/stickers/, ''),
+    ])
     : [];
 }
 
@@ -233,7 +233,8 @@ function renderStickers(tagFilePairs) {
   }
 }
 
-function renderAllTags(allTags) {
+function renderAllTags() {
+  const allTags = GLOB_STATE.allTags;
   $('#alltags').empty();
   for (const tag of allTags) {
     const $tagItem = $(
@@ -276,10 +277,31 @@ function hideCopiedSuccessfulNoti() {
   $('#alertsuccess').css('display', 'none');
 }
 
+// Setup the custom autocomplete widget
+$.widget('custom.intellisense', $.ui.autocomplete, {
+  _resizeMenu: function () {
+    this.menu.element.outerWidth(240);
+    this.menu.element.outerHeight(480);
+    this.menu.element.css('overflow-x', 'hidden');
+    this.menu.element.css('overflow-y', 'auto');
+  }
+});
+
+function enableSearchingAutocomplete() {
+  const $searchInput = $('#searchinput');
+  $searchInput.intellisense({
+    source: GLOB_STATE.allTags,
+    select: function () {
+      $searchInput.trigger('keyup');
+    },
+  });
+}
+
 $(document).ready(function () {
   indexing().then(() => {
     bindSearchInputEvent();
+    enableSearchingAutocomplete();
     renderStickers(defaultStickers());
-    renderAllTags(GLOB_STATE.allTags);
+    renderAllTags();
   });
 });

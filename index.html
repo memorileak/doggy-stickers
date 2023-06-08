@@ -7,11 +7,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Doggy Stickers</title>
   <link href="/styles/bootstrap.min.css" rel="stylesheet">
+  <link href="/styles/jquery-ui.min.css" rel="stylesheet">
   <style>
+    .ui-widget.ui-widget-content {
+      border: 1px solid var(--bs-border-color);
+      border-radius: var(--bs-border-radius);
+    }
+    .ui-state-active, 
+    .ui-widget-content .ui-state-active, 
+    .ui-widget-header .ui-state-active, 
+    a.ui-button:active, 
+    .ui-button:active, 
+    .ui-button.ui-state-active:hover {
+      border: 1px solid var(--bs-primary-bg-subtle);
+      background-color: var(--bs-primary-bg-subtle);
+      color: var(--bs-primary);
+    }
     .sticker {
       height: calc(8rem + 2 * .5rem);
       width: auto;
-      border-radius: .25rem;
+      border-radius: var(--bs-border-radius);
       text-align: center;
       transition-duration: .25s;
       cursor: pointer;
@@ -19,12 +34,12 @@
     .sticker:hover {
       transform: scale(1.25);
       z-index: 1;
-      box-shadow: 0 .5rem 1rem rgba(0,0,0,.15);
+      box-shadow: var(--bs-box-shadow);
     }
     .sticker img {
       height: 100%;
       width: auto;
-      border-radius: .25rem;
+      border-radius: var(--bs-border-radius);
     }
     .alert {
       width: 20rem;
@@ -87,6 +102,7 @@
   </div>
   
   <script src="/libs/jquery-3.7.0.min.js"></script>
+  <script src="/libs/jquery-ui.min.js"></script>
   <script src="/libs/axios.min.js"></script>
   <script src="/index.js"></script>
 </body>
