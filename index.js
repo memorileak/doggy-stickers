@@ -119,7 +119,7 @@ function searchSticker(keyword) {
   for (let i = scoreBucketsSize - 1; i >= 0; i -= 1) {
     result = result.concat(scoreBuckets[i] || []);
   }
-  return result.slice(0, 100);
+  return result;
 }
 
 function selectBucket(keyword) {
