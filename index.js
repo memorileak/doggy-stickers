@@ -1,5 +1,7 @@
 const MAX_SUPPORTED_TAG_LENGTH = 8;
 const RECENTLY_USED_HISTORY_SIZE = 16;
+const STICKERS_DIR = '/stickers';
+const TAGS_DIR = '/tags';
 const GLOB_STATE = {
   allTags: [],
   allFiles: [],
@@ -17,9 +19,28 @@ function indexing() {
     .catch(handleError);
 }
 
-function loadStickersCsv() {
+async function loadStickersCsv() {
+  try {
+    const res = await axios.get('/tags.csv', {responseType: 'text'});
+    const tagsIndexData = res.data;
+    const tagFilesNeedToLoad = tagsIndexData
+      .split('\n')
+      .map((f) => f.trim())
+      .filter((f) => f);
+    let fileTagsPairs = [];
+    for (const tagFile of tagFilesNeedToLoad) {
+      const parsedCsvData = await loadStickersCsvFile(`${TAGS_DIR}${tagFile}`);
+      fileTagsPairs = fileTagsPairs.concat(parsedCsvData);
+    }
+    return fileTagsPairs;
+  } catch (err) {
+    handleError(err);
+  }
+}
+
+function loadStickersCsvFile(csvFile) {
   return axios
-    .get('/stickers.csv', {responseType: 'text'})
+    .get(csvFile, {responseType: 'text'})
     .then((res) => parseStickersCsv(res.data))
     .catch(handleError);
 }
@@ -123,7 +144,12 @@ function calScore(keyword, tag) {
 
 function loadRecentlyUsed() {
   const raw = localStorage.getItem('recentlyUsed');
-  return raw ? JSON.parse(raw) : [];
+  return raw
+    ? JSON.parse(raw).map(([tag, file]) => [
+        tag,
+        file.replace(/^\/stickers/, ''),
+      ])
+    : [];
 }
 
 function saveRecentlyUsed([tag, file]) {
@@ -174,13 +200,15 @@ function randomInt(exclusiveMax) {
 }
 
 function writeStickerToClipboard(file) {
-  return axios.get(file, {responseType: 'blob'}).then(({data: blob}) =>
-    navigator.clipboard.write([
-      new ClipboardItem({
-        [blob.type]: blob,
-      }),
-    ])
-  );
+  return axios
+    .get(`${STICKERS_DIR}${file}`, {responseType: 'blob'})
+    .then(({data: blob}) =>
+      navigator.clipboard.write([
+        new ClipboardItem({
+          [blob.type]: blob,
+        }),
+      ])
+    );
 }
 
 // DOM Manipulation
@@ -189,8 +217,8 @@ function renderStickers(tagFilePairs) {
   for (const [tag, file] of tagFilePairs) {
     const $stickerItem = $(
       [
-        `<div title="Click để sao chép" class="me-2 mb-2 p-2 bg-light position-relative sticker">`,
-        `<img alt="${tag}" src="${file}"></img>`,
+        `<div title="Click to copy" class="me-2 mb-2 p-2 bg-light position-relative sticker">`,
+        `<img alt="${tag}" src="${STICKERS_DIR}${file}"></img>`,
         `<span class="badge text-bg-light position-absolute top-0 start-0">${tag}</span>`,
         `</div>`,
       ].join('')
