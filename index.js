@@ -178,9 +178,10 @@ function randomStickers(quantity) {
   const l = GLOB_STATE.allFiles.length;
   if (quantity < l) {
     let s = 0;
+    let ss = 0;
     const seen = {};
     const result = [];
-    while (s < quantity) {
+    while (s < quantity && ss < 2 * quantity) {
       const i = randomInt(l);
       if (!seen[i]) {
         const [f, [t]] = GLOB_STATE.allFiles[i];
@@ -188,6 +189,7 @@ function randomStickers(quantity) {
         seen[i] = true;
         s += 1;
       }
+      ss += 1;
     }
     return result;
   } else {
