@@ -1,0 +1,18 @@
+{
+  "github": {
+    "silent": true
+  },
+  "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    }
+  ],
+  "redirects": [{ "source": "/ping", "destination": "api/index" }]
+}

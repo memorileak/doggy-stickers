@@ -1,0 +1,14 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+  },
+  "devDependencies": {
+    "vercel": "^30.2.1"
+  },
+  "dependencies": {
+    "mongoose": "^7.2.3"
+  }
+}
