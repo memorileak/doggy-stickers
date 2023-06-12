@@ -1,7 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
-import { SwaggerModule } from '@nestjs/swagger';
 import { initializeSwagger } from './swagger';
 
 async function bootstrap() {
@@ -9,6 +8,7 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
 
+  app.setGlobalPrefix('api');
   app.enableVersioning();
 
   initializeSwagger(configService, app);

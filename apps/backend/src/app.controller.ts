@@ -9,8 +9,8 @@ export class AppController {
     private readonly configService: ConfigService,
   ) {}
 
-  @Get('ping')
-  getHello(): string {
-    return this.appService.getHello();
+  @Get('/ping')
+  ping() {
+    return 'pong';
   }
 }
