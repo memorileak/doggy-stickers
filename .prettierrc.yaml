@@ -1,0 +1,10 @@
+# Prettier configuration
+printWidth: 100
+tabWidth: 2
+useTabs: false
+semi: true
+singleQuote: true
+endOfLine: lf
+trailingComma: all
+bracketSpacing: false
+proseWrap: preserve

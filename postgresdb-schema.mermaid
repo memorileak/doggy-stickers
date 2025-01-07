@@ -1,0 +1,14 @@
+erDiagram
+    stickers {
+        int8 id PK
+        int8 set_id FK
+        text image_path
+        _text tags
+        timestamptz created_at
+    }
+    sticker_sets {
+        int8 id PK
+        text name
+        timestamptz created_at
+    }
+    stickers ||--o{ sticker_sets : "belongs_to"

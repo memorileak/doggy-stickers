@@ -1,0 +1,142 @@
+<!-- Main Layout -->
+<div class="flex h-screen bg-gray-50">
+  <!-- Backdrop -->
+  <div
+    *ngIf="isSidebarOpen"
+    class="fixed inset-0 bg-black bg-opacity-50 lg:hidden z-10"
+    (click)="isSidebarOpen = false"
+  ></div>
+
+  <!-- Left Sidebar -->
+  <div
+    class="fixed lg:relative flex flex-col w-64 bg-white border-r border-gray-200 h-full transition-transform duration-300 ease-in-out z-20"
+    [class.translate-x-0]="isSidebarOpen"
+    [class.-translate-x-full]="!isSidebarOpen"
+    [class.lg:translate-x-0]="true"
+  >
+    <!-- Sidebar Header -->
+    <div class="h-16 flex items-center justify-between px-4 border-b border-gray-200 bg-gray-50">
+      <h2 class="text-lg font-semibold text-gray-900">Doggy Stickers</h2>
+    </div>
+
+    <!-- Set List -->
+    <div class="overflow-y-auto flex-1">
+      <div
+        *ngFor="let set of stickerSets$ | async"
+        (click)="selectSet(set)"
+        class="px-4 py-4 border-b border-gray-200 cursor-pointer"
+        [class.bg-blue-50]="set.id === activeSetId"
+      >
+        <div class="font-medium" [class.text-blue-600]="set.id === activeSetId">
+          {{ set.name }}
+        </div>
+        <div class="text-sm text-gray-500">{{ set.sticker_count }} stickers</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="flex-1 flex flex-col">
+    <!-- Top Bar -->
+    <div class="h-16 bg-white border-b border-gray-200 flex items-center gap-4 px-6">
+      <button
+        class="lg:hidden text-gray-600 hover:text-gray-900"
+        (click)="isSidebarOpen = !isSidebarOpen"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-6 w-6"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M4 6h16M4 12h16M4 18h16"
+          />
+        </svg>
+      </button>
+
+      <input
+        type="text"
+        placeholder="Search stickers by tags, separated by spaces"
+        class="w-0 flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+        [ngModel]="searchKeyword"
+        (ngModelChange)="onSearch($event)"
+      />
+
+      <button
+        routerLink="/manage-stickers"
+        class="px-4 py-2 hidden sm:flex items-center gap-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-5 w-5"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
+          <path
+            d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z"
+          />
+        </svg>
+        Manage Stickers
+      </button>
+    </div>
+
+    <!-- Sticker Grid -->
+    <div class="flex-1 overflow-y-auto p-6">
+      <div *ngIf="visibleStickers.length === 0" class="text-center text-gray-500 py-12">
+        No stickers found.
+      </div>
+      <div
+        *ngIf="visibleStickers.length"
+        class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6"
+      >
+        <div
+          *ngFor="let sticker of visibleStickers"
+          title="Click to copy"
+          class="bg-white rounded-lg shadow hover:shadow-md cursor-pointer hover:scale-105 duration-150"
+          (click)="copyStickerToClipboard(sticker)"
+        >
+          <!-- Sticker Preview -->
+          <div class="aspect-square p-4 bg-gray-50 rounded-t-lg relative">
+            <img
+              [src]="stickersService.getStickerPublicUrl(sticker.image_path)"
+              class="w-full h-full object-contain"
+              alt="Sticker"
+            />
+          </div>
+
+          <!-- Tag Editor -->
+          <div class="p-4">
+            <h3 class="font-medium mb-2">{{ sticker.set_name || 'Unnamed' }}</h3>
+            <!-- Tag List -->
+            <div class="flex flex-wrap gap-2">
+              <div
+                *ngFor="let tag of sticker.tags"
+                class="px-2 py-1 bg-gray-100 rounded-lg text-sm flex items-center gap-1"
+              >
+                {{ tag }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification -->
+  <div
+    *ngIf="hasNotification"
+    class="fixed bottom-4 right-4 bg-emerald-50 text-emerald-700 border border-emerald-200 px-6 py-4 rounded-lg shadow-lg transition-opacity duration-300 z-50"
+    [ngClass]="{
+      'opacity-100': showNotification,
+      'opacity-0': !showNotification,
+    }"
+    (transitionend)="removeNotificationElement()"
+  >
+    Sticker copied to clipboard!
+  </div>
+</div>
