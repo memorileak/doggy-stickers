@@ -3,10 +3,14 @@ import {Injectable} from '@angular/core';
 import {AuthService} from '@modules/auth';
 
 import {PaginatedResponse, PaginationParams, Sticker} from './stickers.interface';
+import {RecentlyUsedStickersService} from './recently-used-stickers.service';
 
 @Injectable({providedIn: null})
 export class StickersService {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly recentlyUsedStickersService: RecentlyUsedStickersService,
+  ) {}
 
   getAllStickers(pagination?: PaginationParams): Observable<PaginatedResponse<Sticker>> {
     const client = this.authService.getClient();
@@ -158,16 +162,22 @@ export class StickersService {
     tagsString: string,
     pagination?: PaginationParams,
   ): Observable<PaginatedResponse<Sticker>> {
+    const {page = 1, pageSize = 20} = pagination || {};
+    if (stickerSetId === -1) {
+      const recentlyUsedStickerIds =
+        this.recentlyUsedStickersService.getRecentlyUsedStickerIds(pageSize);
+      return this.getStickersByIds(recentlyUsedStickerIds, pagination);
+    }
+
     const tags = tagsString
       .split(' ')
       .map((tag) => tag.trim())
       .filter((tag) => tag.length > 0);
 
-    const client = this.authService.getClient();
-    const {page = 1, pageSize = 20} = pagination || {};
     const start = (page - 1) * pageSize;
     const end = start + pageSize - 1;
 
+    const client = this.authService.getClient();
     const query = client
       .from('stickers')
       .select('*, set_name:sticker_sets(name)', {count: 'exact'});
@@ -180,7 +190,9 @@ export class StickersService {
       query.eq('set_id', stickerSetId);
     }
 
-    return from(query.order('created_at', {ascending: false}).range(start, end)).pipe(
+    query.order('created_at', {ascending: false}).range(start, end);
+
+    return from(query).pipe(
       map(({data, error, count}) => {
         if (error) throw error;
         const stickers = (data || []).map((s) => ({...s, set_name: s.set_name?.name ?? ''}));
@@ -193,6 +205,53 @@ export class StickersService {
         };
       }),
     );
+  }
+
+  private getStickersByIds(
+    stickerIds: number[],
+    pagination?: PaginationParams,
+  ): Observable<PaginatedResponse<Sticker>> {
+    const client = this.authService.getClient();
+    const {page = 1, pageSize = 20} = pagination || {};
+
+    if (stickerIds.length > 0) {
+      const query = client
+        .from('stickers')
+        .select('*, set_name:sticker_sets(name)', {count: 'exact'})
+        .in('id', stickerIds)
+        .order('id', {ascending: true});
+      return from(query).pipe(
+        map(({data, error, count}) => {
+          if (error) throw error;
+          const stickers: Sticker[] = (data || []).map((s) => ({
+            ...s,
+            set_name: s.set_name?.name ?? '',
+          }));
+          const mapIdToSticker: Record<number, Sticker> = {};
+          for (const s of stickers) {
+            mapIdToSticker[s.id] = s;
+          }
+          const sortedStickers = stickerIds.map((id) => mapIdToSticker[id]);
+          return {
+            data: sortedStickers,
+            total: count || 0,
+            page,
+            pageSize,
+            totalPages: Math.ceil((count || 0) / pageSize),
+          };
+        }),
+      );
+    }
+
+    return from([
+      {
+        data: [],
+        total: 0,
+        page,
+        pageSize,
+        totalPages: 0,
+      },
+    ]);
   }
 
   private generateStickerFileName(stickerSetId: number): string {

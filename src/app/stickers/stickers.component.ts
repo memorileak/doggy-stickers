@@ -35,7 +35,7 @@ export class StickersComponent implements OnInit, OnDestroy {
   activeSetSubject$: Subject<StickerSet>;
   searchKeywordSubject$: Subject<string>;
 
-  activeSetId = 0;
+  activeSetId = -Infinity;
   searchKeyword = '';
   currentPage = 1;
   pageSize = 20;
@@ -113,6 +113,7 @@ export class StickersComponent implements OnInit, OnDestroy {
 
   async copyStickerToClipboard(sticker: Sticker): Promise<void> {
     try {
+      this.recentlyUsedStickersService.pushStickerId(sticker.id);
       const stickerUrl = this.stickersService.getStickerPublicUrl(sticker.image_path);
       const response = await fetch(stickerUrl);
       const blob = await response.blob();
@@ -121,7 +122,6 @@ export class StickersComponent implements OnInit, OnDestroy {
           [blob.type]: blob,
         }),
       ]);
-      this.recentlyUsedStickersService.pushStickerId(sticker.id);
       this.showNotificationMessage({isError: false, content: 'Sticker copied to clipboard!'});
     } catch (error) {
       console.error('Failed to copy sticker:', error);
@@ -179,22 +179,7 @@ export class StickersComponent implements OnInit, OnDestroy {
         }),
       )
       .subscribe((response) => {
-        if (!stickerSetId && !tagsString && this.currentPage === 1) {
-          const recentIds = this.recentlyUsedStickersService.getRecentlyUsedStickerIds(32);
-          const recentStickers: Sticker[] = [];
-          const otherStickers: Sticker[] = [];
-          for (const s of response.data) {
-            const recentIndex = recentIds.indexOf(s.id);
-            if (recentIndex !== -1) {
-              recentStickers[recentIndex] = s;
-            } else {
-              otherStickers.push(s);
-            }
-          }
-          this.visibleStickers = recentStickers.filter((s) => !!s).concat(otherStickers);
-        } else {
-          this.visibleStickers = response.data;
-        }
+        this.visibleStickers = response.data;
         this.totalPages = response.totalPages;
       });
   }

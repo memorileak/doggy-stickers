@@ -3,7 +3,7 @@ import {Injectable} from '@angular/core';
 @Injectable({providedIn: null})
 export class RecentlyUsedStickersService {
   private readonly STORAGE_KEY = 'recently-used-stickers';
-  private readonly MAX_SIZE = 512;
+  private readonly MAX_SIZE = 100;
 
   private getStoredIds(): number[] {
     const stored = localStorage.getItem(this.STORAGE_KEY);

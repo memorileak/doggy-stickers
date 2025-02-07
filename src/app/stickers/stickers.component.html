@@ -30,7 +30,12 @@
         <div class="font-medium" [class.text-blue-600]="set.id === activeSetId">
           {{ set.name }}
         </div>
-        <div class="text-sm text-gray-500">{{ set.sticker_count }} stickers</div>
+        <div *ngIf="set?.id !== -1; else clickedLately" class="text-sm text-gray-500">
+          {{ set.sticker_count }} stickers
+        </div>
+        <ng-template #clickedLately>
+          <div class="text-sm text-gray-500">Clicked lately</div>
+        </ng-template>
       </div>
     </div>
   </div>
@@ -59,13 +64,21 @@
         </svg>
       </button>
 
-      <input
-        type="text"
-        placeholder="Search stickers by tags, separated by spaces"
-        class="w-0 flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
-        [ngModel]="searchKeyword"
-        (ngModelChange)="onSearch($event)"
-      />
+      <ng-container *ngIf="activeSetId !== -1; then searchInput; else recentlyUsedTitle" />
+      <ng-template #searchInput>
+        <input
+          type="text"
+          placeholder="Search stickers by tags, separated by spaces"
+          class="w-0 flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+          [ngModel]="searchKeyword"
+          (ngModelChange)="onSearch($event)"
+        />
+      </ng-template>
+      <ng-template #recentlyUsedTitle>
+        <h1 *ngIf="activeSetId === -1" class="flex-1 text-xl font-semibold text-gray-900">
+          Recently Used
+        </h1>
+      </ng-template>
 
       <button
         routerLink="/manage-stickers"
