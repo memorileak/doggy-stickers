@@ -17,7 +17,10 @@ import {
   StickerSetsService,
   StickersService,
   RecentlyUsedStickersService,
+  PaginatedResponse,
 } from '@modules/stickers';
+
+type UINotification = {isError: boolean; content: string};
 
 @Component({
   selector: 'app-stickers',
@@ -34,9 +37,12 @@ export class StickersComponent implements OnInit, OnDestroy {
 
   activeSetId = 0;
   searchKeyword = '';
+  currentPage = 1;
+  pageSize = 20;
+  totalPages = 1;
   visibleStickers: Sticker[] = [];
 
-  hasNotification = false;
+  notification: UINotification | null = null;
   showNotification = false;
 
   isSidebarOpen = window.innerWidth >= this.LEFT_SIDEBAR_BREAKPOINT;
@@ -68,13 +74,23 @@ export class StickersComponent implements OnInit, OnDestroy {
     this.activeSetSubject$
       .pipe(
         switchMap((activeSet) => {
-          this.activeSetId = activeSet?.id ?? 0;
+          if (this.activeSetId !== (activeSet?.id ?? 0)) {
+            this.activeSetId = activeSet?.id ?? 0;
+            this.currentPage = 1;
+          }
           return of(activeSet);
         }),
       )
       .subscribe(this.searchStickers);
     this.searchKeywordSubject$
-      .pipe(debounceTime(500), distinctUntilChanged())
+      .pipe(
+        debounceTime(500),
+        distinctUntilChanged(),
+        switchMap((searchKeyword) => {
+          this.currentPage = 1;
+          return of(searchKeyword);
+        }),
+      )
       .subscribe(this.searchStickers);
   }
 
@@ -106,19 +122,23 @@ export class StickersComponent implements OnInit, OnDestroy {
         }),
       ]);
       this.recentlyUsedStickersService.pushStickerId(sticker.id);
-      this.showNotificationMessage();
+      this.showNotificationMessage({isError: false, content: 'Sticker copied to clipboard!'});
     } catch (error) {
       console.error('Failed to copy sticker:', error);
+      this.showNotificationMessage({
+        isError: true,
+        content: 'Failed to copy sticker, please try copying image manually instead.',
+      });
     }
   }
 
-  private showNotificationMessage(): void {
+  private showNotificationMessage(notification: UINotification): void {
     if (this.notificationTimeout) {
       window.clearTimeout(this.notificationTimeout);
     }
-    this.hasNotification = true;
+    this.notification = notification;
     window.setTimeout(() => {
-      if (this.hasNotification && !this.showNotification) {
+      if (this.notification && !this.showNotification) {
         this.showNotification = true;
       }
       this.notificationTimeout = window.setTimeout(() => {
@@ -128,8 +148,8 @@ export class StickersComponent implements OnInit, OnDestroy {
   }
 
   removeNotificationElement(): void {
-    if (!this.showNotification && this.hasNotification) {
-      this.hasNotification = false;
+    if (!this.showNotification && this.notification) {
+      this.notification = null;
     }
   }
 
@@ -142,19 +162,28 @@ export class StickersComponent implements OnInit, OnDestroy {
     const stickerSetId = this.activeSetId ?? 0;
     const tagsString = this.searchKeyword ?? '';
     this.stickersService
-      .searchStickersBySetIdAndTags(stickerSetId, tagsString)
+      .searchStickersBySetIdAndTags(stickerSetId, tagsString, {
+        page: this.currentPage,
+        pageSize: this.pageSize,
+      })
       .pipe(
         catchError((err) => {
           console.error('Search failed:', err);
-          return of([]);
+          return of<PaginatedResponse<Sticker>>({
+            data: [],
+            total: 0,
+            page: this.currentPage,
+            pageSize: this.pageSize,
+            totalPages: 0,
+          });
         }),
       )
-      .subscribe((stickers) => {
-        if (!stickerSetId && !tagsString) {
+      .subscribe((response) => {
+        if (!stickerSetId && !tagsString && this.currentPage === 1) {
           const recentIds = this.recentlyUsedStickersService.getRecentlyUsedStickerIds(32);
           const recentStickers: Sticker[] = [];
           const otherStickers: Sticker[] = [];
-          for (const s of stickers) {
+          for (const s of response.data) {
             const recentIndex = recentIds.indexOf(s.id);
             if (recentIndex !== -1) {
               recentStickers[recentIndex] = s;
@@ -164,8 +193,16 @@ export class StickersComponent implements OnInit, OnDestroy {
           }
           this.visibleStickers = recentStickers.filter((s) => !!s).concat(otherStickers);
         } else {
-          this.visibleStickers = stickers;
+          this.visibleStickers = response.data;
         }
+        this.totalPages = response.totalPages;
       });
+  }
+
+  changePage(newPage: number): void {
+    if (newPage >= 1 && newPage <= this.totalPages && newPage !== this.currentPage) {
+      this.currentPage = newPage;
+      this.searchStickers();
+    }
   }
 }

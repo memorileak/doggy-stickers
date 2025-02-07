@@ -2,41 +2,68 @@ import {Observable, from, map} from 'rxjs';
 import {Injectable} from '@angular/core';
 import {AuthService} from '@modules/auth';
 
-import {Sticker} from './stickers.interface';
+import {PaginatedResponse, PaginationParams, Sticker} from './stickers.interface';
 
 @Injectable({providedIn: null})
 export class StickersService {
   constructor(private readonly authService: AuthService) {}
 
-  getAllStickers(): Observable<Sticker[]> {
+  getAllStickers(pagination?: PaginationParams): Observable<PaginatedResponse<Sticker>> {
     const client = this.authService.getClient();
+    const {page = 1, pageSize = 20} = pagination || {};
+    const start = (page - 1) * pageSize;
+    const end = start + pageSize - 1;
+
     return from(
       client
         .from('stickers')
-        .select('*, set_name:sticker_sets(name)')
-        .order('created_at', {ascending: false}),
+        .select('*, set_name:sticker_sets(name)', {count: 'exact'})
+        .order('created_at', {ascending: false})
+        .range(start, end),
     ).pipe(
-      map(({data, error}) => {
+      map(({data, error, count}) => {
         if (error) throw error;
-        return (data || []).map((s) => ({...s, set_name: s.set_name?.name ?? ''}));
+        const stickers = (data || []).map((s) => ({...s, set_name: s.set_name?.name ?? ''}));
+        return {
+          data: stickers,
+          total: count || 0,
+          page,
+          pageSize,
+          totalPages: Math.ceil((count || 0) / pageSize),
+        };
       }),
     );
   }
 
-  getStickersBelongToSet(stickerSetId: number): Observable<Sticker[]> {
+  getStickersBelongToSet(
+    stickerSetId: number,
+    pagination?: PaginationParams,
+  ): Observable<PaginatedResponse<Sticker>> {
     const client = this.authService.getClient();
+    const {page = 1, pageSize = 20} = pagination || {};
+    const start = (page - 1) * pageSize;
+    const end = start + pageSize - 1;
+
     return stickerSetId === 0
-      ? this.getAllStickers()
+      ? this.getAllStickers(pagination)
       : from(
           client
             .from('stickers')
-            .select('*, set_name:sticker_sets(name)')
+            .select('*, set_name:sticker_sets(name)', {count: 'exact'})
             .eq('set_id', stickerSetId)
-            .order('created_at', {ascending: false}),
+            .order('created_at', {ascending: false})
+            .range(start, end),
         ).pipe(
-          map(({data, error}) => {
+          map(({data, error, count}) => {
             if (error) throw error;
-            return (data || []).map((s) => ({...s, set_name: s.set_name?.name ?? ''}));
+            const stickers = (data || []).map((s) => ({...s, set_name: s.set_name?.name ?? ''}));
+            return {
+              data: stickers,
+              total: count || 0,
+              page,
+              pageSize,
+              totalPages: Math.ceil((count || 0) / pageSize),
+            };
           }),
         );
   }
@@ -126,14 +153,24 @@ export class StickersService {
     );
   }
 
-  searchStickersBySetIdAndTags(stickerSetId: number, tagsString: string): Observable<Sticker[]> {
+  searchStickersBySetIdAndTags(
+    stickerSetId: number,
+    tagsString: string,
+    pagination?: PaginationParams,
+  ): Observable<PaginatedResponse<Sticker>> {
     const tags = tagsString
       .split(' ')
       .map((tag) => tag.trim())
       .filter((tag) => tag.length > 0);
 
     const client = this.authService.getClient();
-    const query = client.from('stickers').select('*, set_name:sticker_sets(name)');
+    const {page = 1, pageSize = 20} = pagination || {};
+    const start = (page - 1) * pageSize;
+    const end = start + pageSize - 1;
+
+    const query = client
+      .from('stickers')
+      .select('*, set_name:sticker_sets(name)', {count: 'exact'});
 
     if (tags.length > 0) {
       query.contains('tags', tags);
@@ -143,10 +180,17 @@ export class StickersService {
       query.eq('set_id', stickerSetId);
     }
 
-    return from(query.order('created_at', {ascending: false})).pipe(
-      map(({data, error}) => {
+    return from(query.order('created_at', {ascending: false}).range(start, end)).pipe(
+      map(({data, error, count}) => {
         if (error) throw error;
-        return (data || []).map((s) => ({...s, set_name: s.set_name?.name ?? ''}));
+        const stickers = (data || []).map((s) => ({...s, set_name: s.set_name?.name ?? ''}));
+        return {
+          data: stickers,
+          total: count || 0,
+          page,
+          pageSize,
+          totalPages: Math.ceil((count || 0) / pageSize),
+        };
       }),
     );
   }

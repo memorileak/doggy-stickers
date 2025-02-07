@@ -42,7 +42,7 @@
   </div>
 
   <!-- Main Content -->
-  <div class="flex-1 flex flex-col">
+  <div class="flex-1 flex flex-col relative">
     <!-- Top Bar -->
     <div class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
       <div class="flex items-center gap-4">
@@ -91,7 +91,7 @@
     </div>
 
     <!-- Sticker Grid -->
-    <div class="flex-1 overflow-y-auto p-6">
+    <div class="flex-1 overflow-y-auto px-6 pt-6 pb-24">
       <div *ngIf="activeStickers?.length === 0" class="text-center text-gray-500 py-12">
         This sticker set is empty, let's import some stickers into it.
       </div>
@@ -166,6 +166,30 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Pagination Controls -->
+      <div
+        *ngIf="totalPages > 1"
+        class="mt-8 flex justify-center items-center gap-4 absolute bottom-0 left-0 right-0 bg-gray-50 py-6"
+      >
+        <button
+          (click)="changePage(currentPage - 1)"
+          [disabled]="currentPage === 1"
+          class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Previous
+        </button>
+
+        <span class="text-sm text-gray-700"> Page {{ currentPage }} of {{ totalPages }} </span>
+
+        <button
+          (click)="changePage(currentPage + 1)"
+          [disabled]="currentPage === totalPages"
+          class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Next
+        </button>
       </div>
     </div>
   </div>

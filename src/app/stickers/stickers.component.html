@@ -36,7 +36,7 @@
   </div>
 
   <!-- Main Content -->
-  <div class="flex-1 flex flex-col">
+  <div class="flex-1 flex flex-col relative">
     <!-- Top Bar -->
     <div class="h-16 bg-white border-b border-gray-200 flex items-center gap-4 px-6">
       <button
@@ -86,19 +86,18 @@
     </div>
 
     <!-- Sticker Grid -->
-    <div class="flex-1 overflow-y-auto p-6">
-      <div *ngIf="visibleStickers.length === 0" class="text-center text-gray-500 py-12">
+    <div class="flex-1 overflow-y-auto px-6 pt-6 pb-24">
+      <div *ngIf="!visibleStickers?.length" class="text-center text-gray-500 py-12">
         No stickers found.
       </div>
       <div
-        *ngIf="visibleStickers.length"
+        *ngIf="visibleStickers?.length"
         class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6"
       >
         <div
           *ngFor="let sticker of visibleStickers"
-          title="Click to copy"
-          class="bg-white rounded-lg shadow hover:shadow-md cursor-pointer hover:scale-105 duration-150"
           (click)="copyStickerToClipboard(sticker)"
+          class="bg-white rounded-lg shadow hover:shadow-md cursor-pointer duration-150"
         >
           <!-- Sticker Preview -->
           <div class="aspect-square p-4 bg-gray-50 rounded-t-lg relative">
@@ -109,14 +108,15 @@
             />
           </div>
 
-          <!-- Tag Editor -->
+          <!-- Tag Show -->
           <div class="p-4">
             <h3 class="font-medium mb-2">{{ sticker.set_name || 'Unnamed' }}</h3>
             <!-- Tag List -->
             <div class="flex flex-wrap gap-2">
               <div
                 *ngFor="let tag of sticker.tags"
-                class="px-2 py-1 bg-gray-100 rounded-lg text-sm flex items-center gap-1"
+                class="px-2 py-1 bg-gray-100 rounded-lg text-sm flex items-center gap-1 hover:bg-gray-200"
+                (click)="$event.stopPropagation(); onSearch(tag)"
               >
                 {{ tag }}
               </div>
@@ -125,18 +125,48 @@
         </div>
       </div>
     </div>
+
+    <!-- Pagination Controls -->
+    <div
+      *ngIf="totalPages > 1"
+      class="mt-8 flex justify-center items-center gap-4 absolute bottom-0 left-0 right-0 bg-gray-50 py-6"
+    >
+      <button
+        (click)="changePage(currentPage - 1)"
+        [disabled]="currentPage === 1"
+        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        Previous
+      </button>
+
+      <span class="text-sm text-gray-700"> Page {{ currentPage }} of {{ totalPages }} </span>
+
+      <button
+        (click)="changePage(currentPage + 1)"
+        [disabled]="currentPage === totalPages"
+        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        Next
+      </button>
+    </div>
   </div>
 
   <!-- Notification -->
   <div
-    *ngIf="hasNotification"
-    class="fixed bottom-4 right-4 bg-emerald-50 text-emerald-700 border border-emerald-200 px-6 py-4 rounded-lg shadow-lg transition-opacity duration-300 z-50"
+    *ngIf="notification"
+    class="fixed bottom-4 right-4 border px-6 py-4 rounded-lg shadow-lg transition-opacity duration-300 z-50"
     [ngClass]="{
       'opacity-100': showNotification,
       'opacity-0': !showNotification,
+      'bg-emerald-50': !notification.isError,
+      'text-emerald-700': !notification.isError,
+      'border-emerald-200': !notification.isError,
+      'bg-red-50': notification.isError,
+      'text-red-700': notification.isError,
+      'border-red-200': notification.isError,
     }"
     (transitionend)="removeNotificationElement()"
   >
-    Sticker copied to clipboard!
+    {{ notification.content }}
   </div>
 </div>
