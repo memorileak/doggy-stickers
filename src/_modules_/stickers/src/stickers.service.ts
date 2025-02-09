@@ -172,7 +172,7 @@ export class StickersService {
     const tags = tagsString
       .split(' ')
       .map((tag) => tag.trim())
-      .filter((tag) => tag.length > 0);
+      .filter((tag) => tag.length > 0 && tag !== '-');
 
     const start = (page - 1) * pageSize;
     const end = start + pageSize - 1;
@@ -182,8 +182,32 @@ export class StickersService {
       .from('stickers')
       .select('*, set_name:sticker_sets(name)', {count: 'exact'});
 
-    if (tags.length > 0) {
-      query.contains('tags', tags);
+    const positiveTags: string[] = [];
+    const negativeTags: string[] = [];
+    let isNsfwAllowed = false;
+
+    for (const t of tags) {
+      if (t === 'nsfw') {
+        isNsfwAllowed = true;
+      }
+      if (t.startsWith('-')) {
+        negativeTags.push(t.slice(1));
+      } else {
+        positiveTags.push(t);
+      }
+    }
+
+    if (!isNsfwAllowed) {
+      negativeTags.push('nsfw');
+    }
+
+    if (positiveTags.length > 0) {
+      query.contains('tags', positiveTags);
+    }
+
+    if (negativeTags.length > 0) {
+      // Not overlaps (&&): Exclude if there's ANY overlap with negative tags
+      query.not('tags', 'ov', `{${negativeTags.join(',')}}`);
     }
 
     if (stickerSetId > 0) {
